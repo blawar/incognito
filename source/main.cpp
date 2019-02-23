@@ -84,7 +84,7 @@ public:
 
 	char* backupFileName()
 	{
-		static char filename[32] = "sdmc:/prodinfo.bin";
+		static char filename[32] = "prodinfo.bin";
 
 		if (!fileExists(filename))
 		{
@@ -94,7 +94,7 @@ public:
 		{
 			for (int i = 0; i < 99; i++)
 			{
-				sprintf(filename, "sdmc:/proinfo.bin.%d", i);
+				sprintf(filename, "proinfo.bin.%d", i);
 
 				if (!fileExists(filename))
 				{
@@ -176,6 +176,29 @@ public:
 		return writeHash();
 	}
 
+	bool import(const char* path)
+	{
+		FILE* f = fopen(path, "rb");
+
+		if (!f)
+		{
+			printf("error: could not open %s\n", path);
+			return false;
+		}
+
+		copy(f, 0x0250, 0x18); // serial
+		copy(f, 0x0AE0, 0x800); // client cert
+		copy(f, 0x3AE0, 0x130); // private key
+		copy(f, 0x35E1, 0x006); // deviceId
+		copy(f, 0x36E1, 0x006); // deviceId
+		copy(f, 0x02B0, 0x180); // device cert
+		copy(f, 0x3D70, 0x240); // device cert
+		copy(f, 0x3FC0, 0x240); // device key
+
+		fclose(f);
+		return true;
+	}
+
 	char* serial()
 	{
 		static char serialNumber[0x19];
@@ -243,42 +266,172 @@ public:
 
 		return true;
 	}
+
+	bool copy(FILE* f, u64 offset, u64 sz)
+	{
+		u8* buffer = new u8[size()];
+
+		fseek(f, offset, 0);
+
+		if (!fread(buffer, 1, sz, f))
+		{
+			printf("error: failed to read %d bytes from %x\n", (long)sz, (long)offset);
+			return false;
+		}
+
+		fsStorageWrite(&m_sh, offset, buffer, sz);
+
+		delete buffer;
+
+		return true;
+	}
 	
 protected:
 	FsStorage m_sh;
 	bool m_open;
 };
 
-
-int main(int argc, char **argv)
+bool end()
 {
-	fsInitialize();
-    consoleInit(NULL);
+	printf("Press + to exit\n");
 
-	Incognito incognito;
-
-	printf("original serial:  %s\n", incognito.serial());
-	incognito.clean();
-	printf("new serial:       %s\n", incognito.serial());
-	incognito.close();
-
-	printf("fin, please reboot\n");
-	printf("press + to exit\n");
-	
-	while(appletMainLoop())
+	while (appletMainLoop())
 	{
 		hidScanInput();
 
-        u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
+		u64 keys = hidKeysDown(CONTROLLER_P1_AUTO);
 
-        if (kDown & KEY_PLUS)
+		if (keys & KEY_PLUS)
 		{
 			break;
 		}
 		consoleUpdate(NULL);
 	}
 
-    consoleExit(NULL);
+	return true;
+}
+
+bool confirm()
+{
+	printf("Are you sure you want to do this?\n");
+	printf("Press A to confirm\n");
+
+	while (appletMainLoop())
+	{
+		hidScanInput();
+
+		u64 keys = hidKeysDown(CONTROLLER_P1_AUTO);
+
+		if (keys & KEY_PLUS || keys & KEY_B || keys & KEY_X || keys & KEY_Y)
+		{
+			return false;
+		}
+
+		if (keys & KEY_A)
+		{
+			return true;
+		}
+		consoleUpdate(NULL);
+	}
+	return false;
+}
+
+bool install()
+{
+	printf("Are you sure you want erase your personal infomation from prodinfo?\n");
+
+	if (!confirm())
+	{
+		return end();
+	}
+
+	Incognito incognito;
+
+	incognito.clean();
+	printf("new serial:       %s\n", incognito.serial());
+	incognito.close();
+
+	printf("fin, please reboot\n");
+	return end();
+}
+
+bool restore()
+{
+	printf("Are you sure you want to import prodinfo.bin?\n");
+
+	if (!confirm())
+	{
+		return end();
+	}
+
+	Incognito incognito;
+
+	if (!incognito.import("prodinfo.bin"))
+	{
+		printf("error: failed to import prodinfo.bin\n");
+		return end();
+	}
+
+	printf("new serial:       %s\n", incognito.serial());
+	incognito.close();
+
+	printf("fin, please reboot\n");
+	return end();
+}
+
+void printSerial()
+{
+	Incognito incognito;
+
+	printf("%s\n", incognito.serial());
+	incognito.close();
+}
+
+bool mainMenu()
+{
+	printf("\n-------- Main Menu --------\n");
+	printf("Press A to install incognito mode\n");
+	printf("Press Y to restore prodinfo.bin\n");
+	printf("Press + to exit\n");
+
+	while (appletMainLoop())
+	{
+		hidScanInput();
+
+		u64 keys = hidKeysDown(CONTROLLER_P1_AUTO);
+
+		if (keys & KEY_A)
+		{
+			return install();
+		}
+
+		if (keys & KEY_Y)
+		{
+			return restore();
+		}
+
+		if (keys & KEY_PLUS)
+		{
+			break;
+		}
+		consoleUpdate(NULL);
+	}
+	return true;
+}
+
+
+int main(int argc, char **argv)
+{
+	fsInitialize();
+	consoleInit(NULL);
+
+	printSerial();
+
+	printf("Warning: This software was written by a not nice person.\n\n");
+	
+	mainMenu();
+
+	consoleExit(NULL);
 	fsExit();
-    return 0;
+	return 0;
 }
