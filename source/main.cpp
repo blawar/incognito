@@ -360,7 +360,7 @@ protected:
 
 bool end()
 {
-	printf("Press + to exit\n");
+	printf("Press + to Reebot\n");
 
 	while (appletMainLoop())
 	{
@@ -370,7 +370,7 @@ bool end()
 
 		if (keys & KEY_PLUS)
 		{
-			break;
+			Power::Reboot();
 		}
 		consoleUpdate(NULL);
 	}
