@@ -3,6 +3,8 @@
 #include <switch.h>
 #include "mbedtls/sha256.h"
 
+bool mainMenu();
+
 enum Partitions : u8
 {
 	boot0 = 0,
@@ -173,7 +175,10 @@ public:
 		erase(0x02B0, 0x180); // device cert
 		erase(0x3D70, 0x240); // device cert
 		erase(0x3FC0, 0x240); // device key
-		return writeHash();
+
+		writeHash(0x12E0, 0x0AE0, 0x5EA);  // client cert hash
+		writeCal0Hash();
+		return verify();
 	}
 
 	bool import(const char* path)
@@ -188,6 +193,7 @@ public:
 
 		copy(f, 0x0250, 0x18); // serial
 		copy(f, 0x0AE0, 0x800); // client cert
+		copy(f, 0x12E0, 0x20); // client cert hash
 		copy(f, 0x3AE0, 0x130); // private key
 		copy(f, 0x35E1, 0x006); // deviceId
 		copy(f, 0x36E1, 0x006); // deviceId
@@ -196,7 +202,15 @@ public:
 		copy(f, 0x3FC0, 0x240); // device key
 
 		fclose(f);
-		return true;
+		return writeCal0Hash();
+	}
+
+	bool verify()
+	{
+		bool r = verifyHash(0x12E0, 0x0AE0, 0x5EA); // client cert hash
+		r &= verifyHash(0x20, 0x0040, calibrationDataSize()); // calibration hash
+
+		return r;
 	}
 
 	char* serial()
@@ -217,12 +231,17 @@ public:
 	{
 		return read<u32>(0x08);
 	}
-	
-	bool writeHash()
-	{
-		u8* buffer = new u8[calibrationDataSize()];
 
-		if (fsStorageRead(&m_sh, 0x0040, buffer, calibrationDataSize()))
+	bool writeCal0Hash()
+	{
+		return writeHash(0x20, 0x0040, calibrationDataSize());
+	}
+	
+	bool writeHash(u64 hashOffset, u64 offset, u64 sz)
+	{
+		u8* buffer = new u8[sz];
+
+		if (fsStorageRead(&m_sh, offset, buffer, sz))
 		{
 			printf("error: failed reading calibration data\n");
 		}
@@ -230,9 +249,9 @@ public:
 		{
 			u8 hash[0x20];
 
-			mbedtls_sha256(buffer, calibrationDataSize(), hash, 0);
+			mbedtls_sha256(buffer, sz, hash, 0);
 
-			if (fsStorageWrite(&m_sh, 0x20, hash, sizeof(hash)))
+			if (fsStorageWrite(&m_sh, hashOffset, hash, sizeof(hash)))
 			{
 				printf("error: failed writing hash\n");
 			}
@@ -240,6 +259,54 @@ public:
 
 		delete buffer;
 		return true;
+	}
+
+	void print(u8* buffer, u64 sz)
+	{
+		for (u64 i = 0; i < sz; i++)
+		{
+			printf("%2.2X ", buffer[i]);
+		}
+		printf("\n");
+	}
+
+	bool verifyHash(u64 hashOffset, u64 offset, u64 sz)
+	{
+		bool result = false;
+		u8* buffer = new u8[sz];
+
+		if (fsStorageRead(&m_sh, offset, buffer, sz))
+		{
+			printf("error: failed reading calibration data\n");
+		}
+		else
+		{
+			u8 hash1[0x20];
+			u8 hash2[0x20];
+
+			mbedtls_sha256(buffer, sz, hash1, 0);
+
+			if (fsStorageRead(&m_sh, hashOffset, hash2, sizeof(hash2)))
+			{
+				printf("error: failed reading hash\n");
+			}
+			else
+			{
+				if (memcmp(hash1, hash2, sizeof(hash1)))
+				{
+					printf("error: hash verification failed for %x %d\n", (long)offset, (long)sz);
+					print(hash1, 0x20);
+					print(hash2, 0x20);
+				}
+				else
+				{
+					result = true;
+				}
+			}
+		}
+
+		delete buffer;
+		return result;
 	}
 
 	template<class T>
@@ -355,6 +422,23 @@ bool install()
 	return end();
 }
 
+bool verify()
+{
+
+	Incognito incognito;
+
+	if (incognito.verify())
+	{
+		printf("prodinfo verified\n\n");
+		return mainMenu();
+	}
+	else
+	{
+		printf("error: prodinfo is invalid\n\n");
+		return mainMenu();
+	}
+}
+
 bool restore()
 {
 	printf("Are you sure you want to import prodinfo.bin?\n");
@@ -389,10 +473,11 @@ void printSerial()
 
 bool mainMenu()
 {
-	printf("\n-------- Main Menu --------\n");
+	printf("\n\n-------- Main Menu --------\n");
 	printf("Press A to install incognito mode\n");
 	printf("Press Y to restore prodinfo.bin\n");
-	printf("Press + to exit\n");
+	printf("Press X to verify prodinfo NAND\n");
+	printf("Press + to exit\n\n");
 
 	while (appletMainLoop())
 	{
@@ -408,6 +493,11 @@ bool mainMenu()
 		if (keys & KEY_Y)
 		{
 			return restore();
+		}
+
+		if (keys & KEY_X)
+		{
+			return verify();
 		}
 
 		if (keys & KEY_PLUS)
