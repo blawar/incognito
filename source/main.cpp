@@ -176,7 +176,7 @@ public:
 		erase(0x3D70, 0x240); // device cert
 		erase(0x3FC0, 0x240); // device key
 
-		writeHash(0x12E0, 0x0AE0, 0x5EA);  // client cert hash
+		writeHash(0x12E0, 0x0AE0, certSize());  // client cert hash
 		writeCal0Hash();
 		return verify();
 	}
@@ -192,6 +192,7 @@ public:
 		}
 
 		copy(f, 0x0250, 0x18); // serial
+		copy(f, 0x0AD0, 0x04); // client size
 		copy(f, 0x0AE0, 0x800); // client cert
 		copy(f, 0x12E0, 0x20); // client cert hash
 		copy(f, 0x3AE0, 0x130); // private key
@@ -207,7 +208,7 @@ public:
 
 	bool verify()
 	{
-		bool r = verifyHash(0x12E0, 0x0AE0, 0x5EA); // client cert hash
+		bool r = verifyHash(0x12E0, 0x0AE0, certSize()); // client cert hash
 		r &= verifyHash(0x20, 0x0040, calibrationDataSize()); // calibration hash
 
 		return r;
@@ -230,6 +231,11 @@ public:
 	u32 calibrationDataSize()
 	{
 		return read<u32>(0x08);
+	}
+
+	u32 certSize()
+	{
+		return read<u32>(0x0AD0);
 	}
 
 	bool writeCal0Hash()
