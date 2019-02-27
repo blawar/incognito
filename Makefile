@@ -38,7 +38,7 @@ INCLUDES	:=	include
 EXEFS_SRC	:=	exefs_src
 APP_TITLE   :=	Incognito
 APP_AUTHOR  := 	Blake Warner
-APP_VERSION := 	1.0
+APP_VERSION := 	1.3
 #ROMFS	:=	romfs
 
 #---------------------------------------------------------------------------------
