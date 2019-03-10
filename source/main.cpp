@@ -69,7 +69,7 @@ public:
 	{		
 		if (fsOpenBisStorage(&m_sh, Partitions::ProdInfo))
 		{
-			printf("error: failed to open cal0 partition.\n");
+			printf("\x1b[31;1merror:\x1b[0m failed to open cal0 partition.\n");
 			m_open = false;
 		}
 		else
@@ -127,7 +127,7 @@ public:
 
 		if (!fileName)
 		{
-			printf("error: failed to get backup file name\n");
+			printf("\x1b[31;1merror:\x1b[0m failed to get backup file name\n");
 			return false;
 		}
 
@@ -135,7 +135,7 @@ public:
 
 		if (fsStorageRead(&m_sh, 0x0, buffer, size()))
 		{
-			printf("error: failed reading cal0\n");
+			printf("\x1b[31;1merror:\x1b[0m failed reading cal0\n");
 
 			delete buffer;
 			return false;
@@ -145,7 +145,7 @@ public:
 
 		if (!f)
 		{
-			printf("error: failed to open %s for writing\n", fileName);
+			printf("\x1b[31;1merror:\x1b[0m failed to open %s for writing\n", fileName);
 
 			delete buffer;
 			return false;
@@ -178,7 +178,7 @@ public:
 
 		if (fsStorageWrite(&m_sh, 0x0250, junkSerial, strlen(junkSerial)))
 		{
-			printf("error: failed writing serial\n");
+			printf("\x1b[31;1merror:\x1b[0m failed writing serial\n");
 			printf("Atmosphere block the access to prodinfo\n");
 			return false;
 		}
@@ -202,7 +202,7 @@ public:
 
 		if (!f)
 		{
-			printf("error: could not open %s\n", path);
+			printf("\x1b[31;1merror:\x1b[0m could not open %s\n", path);
 			return false;
 		}
 
@@ -237,7 +237,7 @@ public:
 
 		if (fsStorageRead(&m_sh, 0x0250, serialNumber, 0x18))
 		{
-			printf("error: failed reading calibration data\n");
+			printf("\x1b[31;1merror:\x1b[0m failed reading calibration data\n");
 		}
 
 		return serialNumber;
@@ -263,7 +263,7 @@ public:
 
 		if (fsStorageRead(&m_sh, offset, buffer, sz))
 		{
-			printf("error: failed reading calibration data\n");
+			printf("\x1b[31;1merror:\x1b[0m failed reading calibration data\n");
 		}
 		else
 		{
@@ -273,7 +273,7 @@ public:
 
 			if (fsStorageWrite(&m_sh, hashOffset, hash, sizeof(hash)))
 			{
-				printf("error: failed writing hash\n");
+				printf("\x1b[31;1merror:\x1b[0m failed writing hash\n");
 			}
 		}
 
@@ -297,7 +297,7 @@ public:
 
 		if (fsStorageRead(&m_sh, offset, buffer, sz))
 		{
-			printf("error: failed reading calibration data\n");
+			printf("\x1b[31;1merror:\x1b[0m failed reading calibration data\n");
 		}
 		else
 		{
@@ -308,13 +308,13 @@ public:
 
 			if (fsStorageRead(&m_sh, hashOffset, hash2, sizeof(hash2)))
 			{
-				printf("error: failed reading hash\n");
+				printf("\x1b[31;1merror:\x1b[0m failed reading hash\n");
 			}
 			else
 			{
 				if (memcmp(hash1, hash2, sizeof(hash1)))
 				{
-					printf("error: hash verification failed for %x %d\n", (long)offset, (long)sz);
+					printf("\x1b[31;1merror:\x1b[0m hash verification failed for %x %d\n", (long)offset, (long)sz);
 					print(hash1, 0x20);
 					print(hash2, 0x20);
 				}
@@ -336,7 +336,7 @@ public:
 
 		if (fsStorageRead(&m_sh, offset, &buffer, sizeof(T)))
 		{
-			printf("error: failed reading %d bytes @ %x\n", (long)sizeof(T), (long)offset);
+			printf("\x1b[31;1merror:\x1b[0m failed reading %d bytes @ %x\n", (long)sizeof(T), (long)offset);
 		}
 
 		return buffer;
@@ -362,7 +362,7 @@ public:
 
 		if (!fread(buffer, 1, sz, f))
 		{
-			printf("error: failed to read %d bytes from %x\n", (long)sz, (long)offset);
+			printf("\x1b[31;1merror:\x1b[0m failed to read %d bytes from %x\n", (long)sz, (long)offset);
 			return false;
 		}
 
@@ -499,7 +499,7 @@ bool restore()
 
 	if (!incognito.import("prodinfo.bin"))
 	{
-		printf("error: failed to import prodinfo.bin\n");
+		printf("\x1b[31;1merror:\x1b[0m failed to import prodinfo.bin\n");
 		return end();
 	}
 
