@@ -1,7 +1,21 @@
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <inttypes.h>
 #include <switch.h>
 #include "mbedtls/sha256.h"
+
+char *SwitchIdent_GetSerialNumber(void) {
+	setInitialize();
+    setsysInitialize();
+	Result ret = 0;
+	static char serial[0x19];
+	if (R_FAILED(ret = setsysGetSerialNumber(serial)))
+		printf("setsysGetSerialNumber() failed: 0x%x.\n\n", ret);
+	if(strlen(serial) == 0) {sprintf(serial, "XAW00000000000");}
+	setsysExit();
+	return serial;
+}
 
 bool mainMenu();
 
@@ -87,7 +101,7 @@ public:
 	char* backupFileName()
 	{
 		static char filename[32] = "prodinfo.bin";
-
+		sprintf(filename, "%s-unenproinfo.bin.", SwitchIdent_GetSerialNumber());
 		if (!fileExists(filename))
 		{
 			return filename;
@@ -96,15 +110,15 @@ public:
 		{
 			for (int i = 0; i < 99; i++)
 			{
-				sprintf(filename, "proinfo.bin.%d", i);
+				sprintf(filename, "%s-proinfo.bin.%d", SwitchIdent_GetSerialNumber(), i);
 
 				if (!fileExists(filename))
 				{
-					return filename;
+				return filename;
 				}
 			}
 		}
-		return NULL;
+		return filename;
 	}
 
 	bool backup()
@@ -165,6 +179,7 @@ public:
 		if (fsStorageWrite(&m_sh, 0x0250, junkSerial, strlen(junkSerial)))
 		{
 			printf("error: failed writing serial\n");
+			printf("Atmosphere block the access to prodinfo\n");
 			return false;
 		}
 
@@ -232,12 +247,11 @@ public:
 	{
 		return read<u32>(0x08);
 	}
-
+	
 	u32 certSize()
 	{
 		return read<u32>(0x0AD0);
 	}
-
 	bool writeCal0Hash()
 	{
 		return writeHash(0x20, 0x0040, calibrationDataSize());
@@ -363,10 +377,10 @@ protected:
 	FsStorage m_sh;
 	bool m_open;
 };
-
-bool end()
+bool Reboots()
 {
-	printf("Press + to exit\n");
+	printf("Press + to Reboot(recomended)\n");	
+	printf("Press HOME to exit\n");
 
 	while (appletMainLoop())
 	{
@@ -376,7 +390,30 @@ bool end()
 
 		if (keys & KEY_PLUS)
 		{
-			break;
+		bpcInitialize();
+		bpcRebootSystem();
+		bpcExit();
+		}
+		consoleUpdate(NULL);
+	}
+
+	return true;
+}
+bool end()
+
+{
+	printf("Press + to exit\n");	
+
+
+	while (appletMainLoop())
+	{
+		hidScanInput();
+
+		u64 keys = hidKeysDown(CONTROLLER_P1_AUTO);
+
+		if (keys & KEY_PLUS)
+		{
+		break;		
 		}
 		consoleUpdate(NULL);
 	}
@@ -417,15 +454,14 @@ bool install()
 	{
 		return end();
 	}
-
+	printf("Working...\n");
 	Incognito incognito;
 
 	incognito.clean();
 	printf("new serial:       %s\n", incognito.serial());
 	incognito.close();
 
-	printf("fin, please reboot\n");
-	return end();
+	return Reboots();
 }
 
 bool verify()
@@ -435,12 +471,17 @@ bool verify()
 
 	if (incognito.verify())
 	{
-		printf("prodinfo verified\n\n");
+		consoleUpdate(NULL);
+		printf("\n\n");
+		printf("\x1b[32;1mprodinfo verified\n\x1b[0m");
+
 		return mainMenu();
 	}
 	else
 	{
-		printf("error: prodinfo is invalid\n\n");
+		consoleUpdate(NULL);
+		printf("\x1b[31;1merror: prodinfo is invalid\n\n\x1b[0m");
+		
 		return mainMenu();
 	}
 }
@@ -453,7 +494,7 @@ bool restore()
 	{
 		return end();
 	}
-
+	printf("Working...\n");
 	Incognito incognito;
 
 	if (!incognito.import("prodinfo.bin"))
@@ -466,24 +507,22 @@ bool restore()
 	incognito.close();
 
 	printf("fin, please reboot\n");
-	return end();
+	return Reboots();
 }
 
 void printSerial()
 {
 	Incognito incognito;
+	printf("\n");
+	printf("\x1b[33;1m*\x1b[0m Serial number:\x1b[32;1m%s\n", incognito.serial());
 
-	printf("%s\n", incognito.serial());
+
+
 	incognito.close();
 }
 
 bool mainMenu()
 {
-	printf("\n\n-------- Main Menu --------\n");
-	printf("Press A to install incognito mode\n");
-	printf("Press Y to restore prodinfo.bin\n");
-	printf("Press X to verify prodinfo NAND\n");
-	printf("Press + to exit\n\n");
 
 	while (appletMainLoop())
 	{
@@ -522,9 +561,18 @@ int main(int argc, char **argv)
 	consoleInit(NULL);
 
 	printSerial();
+	printf("\n");
+	printf("\x1b[31;1m*\x1b[0m Warning: This software was written by a not nice person.\n");
+	printf("\x1b[31;1m*\x1b[0m This app made permanent modificatins to \x1b[31;1mProdinfo\x1b[0m partition.\n");
+	printf("\x1b[31;1m*\x1b[0m Alwas have a backup (just in case).\n");
+	printf("\x1b[31;1m*\x1b[0m this software come without any warranty.\n");
+	printf("\x1b[31;1m*\x1b[0m I am not responsable of melt switch or nuclear explotions\n\n");
 
-	printf("Warning: This software was written by a not nice person.\n\n");
-	
+	printf("\n\n\x1b[30;1m-------- Main Menu --------\x1b[0m\n");
+	printf("Press A to install incognito mode\n");
+	printf("Press Y to restore prodinfo.bin\n");
+	printf("Press X to verify prodinfo NAND\n");
+	printf("Press + to exit\n\n");
 	mainMenu();
 
 	consoleExit(NULL);
