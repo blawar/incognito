@@ -1,9 +1,14 @@
+#include <iostream>
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <switch.h>
+#include <fstream>
+#include <string>
 #include "mbedtls/sha256.h"
+using namespace std;
+
 
 char *SwitchIdent_GetSerialNumber(void) {
 	setInitialize();
@@ -15,6 +20,22 @@ char *SwitchIdent_GetSerialNumber(void) {
 	if(strlen(serial) == 0) {sprintf(serial, "XAW00000000000");}
 	setsysExit();
 	return serial;
+}
+//	create flags
+bool createflag(const char* flagread){
+		fsInitialize();
+		FILE* c = fopen(flagread, "wb");
+		c;
+		fclose(c);
+		fsExit();
+		return 0;
+}
+
+bool delflags(){
+	remove("/atmosphere/flags/hbl_cal_read.flag");
+	remove("/atmosphere/flags/hbl_cal_write.flag");
+	appletEndBlockingHomeButton();
+	return 0;
 }
 
 bool mainMenu();
@@ -49,6 +70,8 @@ int mbedtls_hardware_poll(void *data, unsigned char *output, size_t len, size_t 
 	}
 	return 0;
 }
+
+
 
 bool fileExists(const char* path)
 {
@@ -101,7 +124,7 @@ public:
 	char* backupFileName()
 	{
 		static char filename[32] = "prodinfo.bin";
-		sprintf(filename, "%s-unenproinfo.bin.", SwitchIdent_GetSerialNumber());
+		sprintf(filename, "%s-proinfo.bin", SwitchIdent_GetSerialNumber());
 		if (!fileExists(filename))
 		{
 			return filename;
@@ -206,7 +229,7 @@ public:
 			return false;
 		}
 
-		copy(f, 0x0250, 0x18); // serial
+		copy(f, 0x0200, 0x70); // serial
 		copy(f, 0x0AD0, 0x04); // client size
 		copy(f, 0x0AE0, 0x800); // client cert
 		copy(f, 0x12E0, 0x20); // client cert hash
@@ -238,6 +261,7 @@ public:
 		if (fsStorageRead(&m_sh, 0x0250, serialNumber, 0x18))
 		{
 			printf("\x1b[31;1merror:\x1b[0m failed reading calibration data\n");
+			sprintf(serialNumber, "%s-*", SwitchIdent_GetSerialNumber());
 		}
 
 		return serialNumber;
@@ -381,7 +405,7 @@ bool Reboots()
 {
 	printf("Press + to Reboot(recomended)\n");	
 	printf("Press HOME to exit\n");
-
+	delflags();
 	while (appletMainLoop())
 	{
 		hidScanInput();
@@ -403,8 +427,7 @@ bool end()
 
 {
 	printf("Press + to exit\n");	
-
-
+	delflags();
 	while (appletMainLoop())
 	{
 		hidScanInput();
@@ -454,12 +477,16 @@ bool install()
 	{
 		return end();
 	}
+	createflag("sdmc:/atmosphere/flags/hbl_cal_write.flag");
 	printf("Working...\n");
-	Incognito incognito;
 
+	Incognito incognito;
 	incognito.clean();
-	printf("new serial:       %s\n", incognito.serial());
+	printf("new serial:       \x1b[32;1m%s\x1b[0m\n", incognito.serial());
 	incognito.close();
+
+
+
 
 	return Reboots();
 }
@@ -494,6 +521,7 @@ bool restore()
 	{
 		return end();
 	}
+	createflag("sdmc:/atmosphere/flags/hbl_cal_write.flag");
 	printf("Working...\n");
 	Incognito incognito;
 
@@ -503,7 +531,7 @@ bool restore()
 		return end();
 	}
 
-	printf("new serial:       %s\n", incognito.serial());
+	printf("new serial:       \x1b[32;1m%s\x1b[0m\n", incognito.serial());
 	incognito.close();
 
 	printf("fin, please reboot\n");
@@ -514,7 +542,7 @@ void printSerial()
 {
 	Incognito incognito;
 	printf("\n");
-	printf("\x1b[33;1m*\x1b[0m Serial number:\x1b[32;1m%s\n", incognito.serial());
+	printf("\x1b[33;1m*\x1b[0m Serial number:\x1b[32;1m%s\x1b[0m\n", incognito.serial());
 
 
 
@@ -537,6 +565,7 @@ bool mainMenu()
 
 		if (keys & KEY_Y)
 		{
+
 			return restore();
 		}
 
@@ -558,9 +587,13 @@ bool mainMenu()
 int main(int argc, char **argv)
 {
 	fsInitialize();
+	
 	consoleInit(NULL);
-
+	appletBeginBlockingHomeButton(3);
+	createflag("sdmc:/atmosphere/flags/hbl_cal_read.flag");
 	printSerial();
+	
+
 	printf("\n");
 	printf("\x1b[31;1m*\x1b[0m Warning: This software was written by a not nice person.\n");
 	printf("\x1b[31;1m*\x1b[0m This app made permanent modificatins to \x1b[31;1mProdinfo\x1b[0m partition.\n");
@@ -574,7 +607,7 @@ int main(int argc, char **argv)
 	printf("Press X to verify prodinfo NAND\n");
 	printf("Press + to exit\n\n");
 	mainMenu();
-
+	delflags();
 	consoleExit(NULL);
 	fsExit();
 	return 0;
