@@ -10,3 +10,8 @@ b) so malicious homebrew applications cannot steal your personal certificate.
 Always have a nand backup.  I am not responsible for any bricks or bans.  Use at your own risk, experimental.
 
 This application backs up your prodinfo to the SD root, you should keep this backup in a more secure location, and not leave it on the SD card where malicious applications can read it.
+
+
+# fork from
+
+# https://github.com/blawar/incognito
