@@ -39,6 +39,8 @@ bool delflags(){
 }
 
 bool mainMenu();
+bool restore();
+
 
 enum Partitions : u8
 {
@@ -165,6 +167,7 @@ public:
 		}
 
 		FILE* f = fopen(fileName, "wb+");
+		FILE* g = fopen("prodinfo.bin", "wb+");		
 
 		if (!f)
 		{
@@ -175,9 +178,18 @@ public:
 		}
 
 		fwrite(buffer, 1, size(), f);
-
 		delete buffer;
+		//prepare original Prodinfo for Restiore
+		if (!fileExists("prodinfo.bin"))
+		{
+		if (fsStorageRead(&m_sh, 0x0, buffer, size()))
+		delete buffer;
+		fwrite(buffer, 1, size(), g);
+		}
+		
+		
 		fclose(f);
+		fclose(g);
 
 		printf("saved backup to %s\n", fileName);
 		return true;
@@ -493,7 +505,12 @@ bool install()
 
 bool verify()
 {
-
+	if (!fileExists("prodinfo.bin"))
+	{
+	printf("\n\n");
+	printf("\x1b[31;1merror: prodinfo.bin not found\n\n\x1b[0m");
+	return mainMenu();
+	}
 	Incognito incognito;
 
 	if (incognito.verify())
@@ -502,28 +519,27 @@ bool verify()
 		printf("\n\n");
 		printf("\x1b[32;1mprodinfo verified\n\x1b[0m");
 
-		return mainMenu();
+		return 0;
 	}
 	else
 	{
 		consoleUpdate(NULL);
 		printf("\x1b[31;1merror: prodinfo is invalid\n\n\x1b[0m");
 		
-		return mainMenu();
+		return 0;
 	}
 }
 
 bool restore()
 {
-	printf("Are you sure you want to import prodinfo.bin?\n");
-
+	verify();
 	if (!confirm())
 	{
 		return end();
 	}
 	createflag("sdmc:/atmosphere/flags/hbl_cal_write.flag");
 	printf("Working...\n");
-	Incognito incognito;
+Incognito incognito;
 
 	if (!incognito.import("prodinfo.bin"))
 	{
@@ -569,11 +585,6 @@ bool mainMenu()
 			return restore();
 		}
 
-		if (keys & KEY_X)
-		{
-			return verify();
-		}
-
 		if (keys & KEY_PLUS)
 		{
 			break;
@@ -604,7 +615,6 @@ int main(int argc, char **argv)
 	printf("\n\n\x1b[30;1m-------- Main Menu --------\x1b[0m\n");
 	printf("Press A to install incognito mode\n");
 	printf("Press Y to restore prodinfo.bin\n");
-	printf("Press X to verify prodinfo NAND\n");
 	printf("Press + to exit\n\n");
 	mainMenu();
 	delflags();
