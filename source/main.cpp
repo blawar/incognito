@@ -6,6 +6,7 @@
 #include <switch.h>
 #include <fstream>
 #include <string>
+#include <sys/stat.h>
 #include "mbedtls/sha256.h"
 using namespace std;
 
@@ -601,6 +602,7 @@ int main(int argc, char **argv)
 	
 	consoleInit(NULL);
 	appletBeginBlockingHomeButton(3);
+	mkdir("/atmosphere/flags", 0700);
 	createflag("sdmc:/atmosphere/flags/hbl_cal_read.flag");
 	printSerial();
 	
