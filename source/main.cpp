@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <switch.h>
-#include "mbedtls/sha256.h"
 
 bool mainMenu();
 
@@ -23,18 +22,6 @@ enum Partitions : u8
 	SYSTEM1,
 	SYSTEM2
 };
-
-int mbedtls_hardware_poll(void *data, unsigned char *output, size_t len, size_t *olen)
-{
-	(void)data;
-	randomGet(output, len);
-
-	if (olen)
-	{
-		*olen = len;
-	}
-	return 0;
-}
 
 bool fileExists(const char* path)
 {
@@ -253,9 +240,15 @@ public:
 		}
 		else
 		{
+			Sha256Context ctx;
+
+			sha256ContextCreate(&ctx);
+
+			sha256ContextUpdate(&ctx, buffer, sizeof(buffer));
+			
 			u8 hash[0x20];
 
-			mbedtls_sha256(buffer, sz, hash, 0);
+			sha256ContextGetHash(&ctx, &hash);
 
 			if (fsStorageWrite(&m_sh, hashOffset, hash, sizeof(hash)))
 			{
@@ -290,7 +283,13 @@ public:
 			u8 hash1[0x20];
 			u8 hash2[0x20];
 
-			mbedtls_sha256(buffer, sz, hash1, 0);
+			Sha256Context ctx;
+
+			sha256ContextCreate(&ctx);
+
+			sha256ContextUpdate(&ctx, buffer, sizeof(buffer));
+
+			sha256ContextGetHash(&ctx, &hash1);
 
 			if (fsStorageRead(&m_sh, hashOffset, hash2, sizeof(hash2)))
 			{
