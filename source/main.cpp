@@ -510,7 +510,7 @@ bool verify()
 	{
 	printf("\n\n");
 	printf("\x1b[31;1merror: prodinfo.bin not found\n\n\x1b[0m");
-	return mainMenu();
+	return false;
 	}
 	Incognito incognito;
 
@@ -520,20 +520,20 @@ bool verify()
 		printf("\n\n");
 		printf("\x1b[32;1mprodinfo verified\n\x1b[0m");
 
-		return 0;
+		return true;
 	}
 	else
 	{
 		consoleUpdate(NULL);
 		printf("\x1b[31;1merror: prodinfo is invalid\n\n\x1b[0m");
 		
-		return 0;
+		return false;
 	}
 }
 
 bool restore()
 {
-	verify();
+if(verify()){
 	if (!confirm())
 	{
 		return end();
@@ -553,6 +553,8 @@ Incognito incognito;
 
 	printf("fin, please reboot\n");
 	return Reboots();
+	}
+return mainMenu();
 }
 
 void printSerial()
