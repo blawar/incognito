@@ -127,7 +127,7 @@ public:
 	char* backupFileName()
 	{
 		static char filename[32] = "prodinfo.bin";
-		sprintf(filename, "%s-proinfo.bin", SwitchIdent_GetSerialNumber());
+		sprintf(filename, "%s-prodinfo.bin", SwitchIdent_GetSerialNumber());
 		if (!fileExists(filename))
 		{
 			return filename;
@@ -136,7 +136,7 @@ public:
 		{
 			for (int i = 0; i < 99; i++)
 			{
-				sprintf(filename, "%s-proinfo.bin.%d", SwitchIdent_GetSerialNumber(), i);
+				sprintf(filename, "%s-prodinfo.bin.%d", SwitchIdent_GetSerialNumber(), i);
 
 				if (!fileExists(filename))
 				{
