@@ -409,6 +409,16 @@ bool confirm()
 	return false;
 }
 
+bool backup()
+{
+	printf("Backing up your prodinfo.bin\n");
+	Incognito incognito;
+	incognito.backup();
+	return end();
+	
+}
+
+
 bool install()
 {
 	printf("Are you sure you want erase your personal infomation from prodinfo?\n");
@@ -481,6 +491,7 @@ bool mainMenu()
 {
 	printf("\n\n-------- Main Menu --------\n");
 	printf("Press A to install incognito mode\n");
+	printf("Press B to backup prodinfo.bin only\n");
 	printf("Press Y to restore prodinfo.bin\n");
 	printf("Press X to verify prodinfo NAND\n");
 	printf("Press + to exit\n\n");
@@ -494,6 +505,11 @@ bool mainMenu()
 		if (keys & KEY_A)
 		{
 			return install();
+		}
+		
+		if (keys & KEY_B)
+		{
+			return backup();
 		}
 
 		if (keys & KEY_Y)
