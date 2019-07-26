@@ -96,7 +96,7 @@ public:
 		{
 			for (int i = 0; i < 99; i++)
 			{
-				sprintf(filename, "proinfo.bin.%d", i);
+				sprintf(filename, "prodinfo.bin.%d", i);
 
 				if (!fileExists(filename))
 				{
