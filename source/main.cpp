@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <switch.h>
-#include "mbedtls/sha256.h"
 
 bool mainMenu();
 
@@ -24,18 +23,6 @@ enum Partitions : u8
 	SYSTEM2
 };
 
-int mbedtls_hardware_poll(void *data, unsigned char *output, size_t len, size_t *olen)
-{
-	(void)data;
-	randomGet(output, len);
-
-	if (olen)
-	{
-		*olen = len;
-	}
-	return 0;
-}
-
 bool fileExists(const char* path)
 {
 	FILE* f = fopen(path, "rb");
@@ -53,7 +40,7 @@ public:
 
 	Incognito()
 	{		
-		if (fsOpenBisStorage(&m_sh, Partitions::ProdInfo))
+		if (fsOpenBisStorage(&m_sh, (FsBisStorageId)Partitions::ProdInfo))
 		{
 			printf("error: failed to open cal0 partition.\n");
 			m_open = false;
@@ -255,7 +242,7 @@ public:
 		{
 			u8 hash[0x20];
 
-			mbedtls_sha256(buffer, sz, hash, 0);
+			sha256CalculateHash(hash, buffer, sz);
 
 			if (fsStorageWrite(&m_sh, hashOffset, hash, sizeof(hash)))
 			{
@@ -290,7 +277,7 @@ public:
 			u8 hash1[0x20];
 			u8 hash2[0x20];
 
-			mbedtls_sha256(buffer, sz, hash1, 0);
+			sha256CalculateHash(hash1, buffer, sz);
 
 			if (fsStorageRead(&m_sh, hashOffset, hash2, sizeof(hash2)))
 			{
