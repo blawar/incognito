@@ -1,40 +1,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <switch.h>
-#include "mbedtls/sha256.h"
+#include <dirent.h>
 
 bool mainMenu();
-
-enum Partitions : u8
-{
-	boot0 = 0,
-	boot1 = 10,
-	rawnand = 20,
-	BCPKG21,
-	BCPKG22,
-	BCPKG23,
-	BCPKG24,
-	BCPKG25,
-	BCPKG26,
-	ProdInfo,
-	ProdInfoF,
-	SAFE,
-	USER,
-	SYSTEM1,
-	SYSTEM2
-};
-
-int mbedtls_hardware_poll(void *data, unsigned char *output, size_t len, size_t *olen)
-{
-	(void)data;
-	randomGet(output, len);
-
-	if (olen)
-	{
-		*olen = len;
-	}
-	return 0;
-}
 
 bool fileExists(const char* path)
 {
@@ -53,7 +22,7 @@ public:
 
 	Incognito()
 	{		
-		if (fsOpenBisStorage(&m_sh, Partitions::ProdInfo))
+		if (fsOpenBisStorage(&m_sh, FsBisStorageId_CalibrationBinary))
 		{
 			printf("error: failed to open cal0 partition.\n");
 			m_open = false;
@@ -86,17 +55,18 @@ public:
 
 	char* backupFileName()
 	{
-		static char filename[32] = "prodinfo.bin";
+		static char filename[32] = "sdmc:/backup/prodinfo.bin";
 
 		if (!fileExists(filename))
 		{
+			mkdir("sdmc:/backup/", 777);
 			return filename;
 		}
 		else
 		{
 			for (int i = 0; i < 99; i++)
 			{
-				sprintf(filename, "prodinfo.bin.%d", i);
+				sprintf(filename, "sdmc:/backup/prodinfo.bin.%d", i);
 
 				if (!fileExists(filename))
 				{
@@ -255,7 +225,7 @@ public:
 		{
 			u8 hash[0x20];
 
-			mbedtls_sha256(buffer, sz, hash, 0);
+			sha256CalculateHash(hash, buffer, sz);
 
 			if (fsStorageWrite(&m_sh, hashOffset, hash, sizeof(hash)))
 			{
@@ -290,7 +260,7 @@ public:
 			u8 hash1[0x20];
 			u8 hash2[0x20];
 
-			mbedtls_sha256(buffer, sz, hash1, 0);
+			sha256CalculateHash(hash1, buffer, sz);
 
 			if (fsStorageRead(&m_sh, hashOffset, hash2, sizeof(hash2)))
 			{
@@ -466,7 +436,7 @@ bool restore()
 
 	Incognito incognito;
 
-	if (!incognito.import("prodinfo.bin"))
+	if (!incognito.import("sdmc:/backup/prodinfo.bin"))
 	{
 		printf("error: failed to import prodinfo.bin\n");
 		return end();
