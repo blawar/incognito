@@ -7,10 +7,11 @@
 #include <fstream>
 #include <string>
 #include <sys/stat.h>
-#include "mbedtls/sha256.h"
+#include <dirent.h>
 using namespace std;
+static char version[32] = "1.4-5";
 
-
+//ask to the switch for the serial
 char *SwitchIdent_GetSerialNumber(void) {
 	setInitialize();
     setsysInitialize();
@@ -22,6 +23,7 @@ char *SwitchIdent_GetSerialNumber(void) {
 	setsysExit();
 	return serial;
 }
+
 //	create flags
 bool createflag(const char* flagread){
 		fsInitialize();
@@ -32,6 +34,7 @@ bool createflag(const char* flagread){
 		return 0;
 }
 
+//delete all flags
 bool delflags(){
 	remove("/atmosphere/flags/hbl_cal_read.flag");
 	remove("/atmosphere/flags/hbl_cal_write.flag");
@@ -41,41 +44,6 @@ bool delflags(){
 
 bool mainMenu();
 bool restore();
-
-
-enum Partitions : u8
-{
-	boot0 = 0,
-	boot1 = 10,
-	rawnand = 20,
-	BCPKG21,
-	BCPKG22,
-	BCPKG23,
-	BCPKG24,
-	BCPKG25,
-	BCPKG26,
-	ProdInfo,
-	ProdInfoF,
-	SAFE,
-	USER,
-	SYSTEM1,
-	SYSTEM2
-};
-
-int mbedtls_hardware_poll(void *data, unsigned char *output, size_t len, size_t *olen)
-{
-	(void)data;
-	randomGet(output, len);
-
-	if (olen)
-	{
-		*olen = len;
-	}
-	return 0;
-}
-
-
-
 bool fileExists(const char* path)
 {
 	FILE* f = fopen(path, "rb");
@@ -93,7 +61,7 @@ public:
 
 	Incognito()
 	{		
-		if (fsOpenBisStorage(&m_sh, Partitions::ProdInfo))
+		if (fsOpenBisStorage(&m_sh, FsBisStorageId_CalibrationBinary))
 		{
 			printf("\x1b[31;1merror:\x1b[0m failed to open cal0 partition.\n");
 			m_open = false;
@@ -126,17 +94,18 @@ public:
 
 	char* backupFileName()
 	{
-		static char filename[32] = "prodinfo.bin";
-		sprintf(filename, "%s-prodinfo.bin", SwitchIdent_GetSerialNumber());
+		static char filename[32] = "sdmc:/backup/prodinfo.bin";
+		sprintf(filename, "sdmc:/backup/%s-proinfo.bin", SwitchIdent_GetSerialNumber());
 		if (!fileExists(filename))
 		{
+			mkdir("sdmc:/backup/", 777);
 			return filename;
 		}
 		else
 		{
 			for (int i = 0; i < 99; i++)
 			{
-				sprintf(filename, "%s-prodinfo.bin.%d", SwitchIdent_GetSerialNumber(), i);
+				sprintf(filename, "sdmc:/backup/%s-proinfo.bin.%d", SwitchIdent_GetSerialNumber(), i);
 
 				if (!fileExists(filename))
 				{
@@ -167,21 +136,21 @@ public:
 			return false;
 		}
 
-		FILE* f = fopen(fileName, "wb+");
-		FILE* g = fopen("prodinfo.bin", "wb+");		
+			FILE* f = fopen(fileName, "wb+");
+			FILE* g = fopen("sdmc:/backup/prodinfo.bin", "wb+");		
 
-		if (!f)
-		{
-			printf("\x1b[31;1merror:\x1b[0m failed to open %s for writing\n", fileName);
+			if (!f)
+			{
+				printf("\x1b[31;1merror:\x1b[0m failed to open %s for writing\n", fileName);
 
-			delete buffer;
-			return false;
-		}
+				delete buffer;
+				return false;
+			}
 
 		fwrite(buffer, 1, size(), f);
 		delete buffer;
 		//prepare original Prodinfo for Restiore
-		if (!fileExists("prodinfo.bin"))
+		if (!fileExists("sdmc:/backup/prodinfo.bin"))
 		{
 		if (fsStorageRead(&m_sh, 0x0, buffer, size()))
 		delete buffer;
@@ -306,7 +275,7 @@ public:
 		{
 			u8 hash[0x20];
 
-			mbedtls_sha256(buffer, sz, hash, 0);
+			sha256CalculateHash(hash, buffer, sz);
 
 			if (fsStorageWrite(&m_sh, hashOffset, hash, sizeof(hash)))
 			{
@@ -341,7 +310,7 @@ public:
 			u8 hash1[0x20];
 			u8 hash2[0x20];
 
-			mbedtls_sha256(buffer, sz, hash1, 0);
+			sha256CalculateHash(hash1, buffer, sz);
 
 			if (fsStorageRead(&m_sh, hashOffset, hash2, sizeof(hash2)))
 			{
@@ -492,21 +461,18 @@ bool install()
 	}
 	createflag("sdmc:/atmosphere/flags/hbl_cal_write.flag");
 	printf("Working...\n");
-
+	consoleUpdate(NULL);
 	Incognito incognito;
 	incognito.clean();
 	printf("new serial:       \x1b[32;1m%s\x1b[0m\n", incognito.serial());
 	incognito.close();
-
-
-
 
 	return Reboots();
 }
 
 bool verify()
 {
-	if (!fileExists("prodinfo.bin"))
+	if (!fileExists("sdmc:/backup/prodinfo.bin"))
 	{
 	printf("\n\n");
 	printf("\x1b[31;1merror: prodinfo.bin not found\n\n\x1b[0m");
@@ -540,6 +506,7 @@ if(verify()){
 	}
 	createflag("sdmc:/atmosphere/flags/hbl_cal_write.flag");
 	printf("Working...\n");
+	consoleUpdate(NULL);
 Incognito incognito;
 
 	if (!incognito.import("prodinfo.bin"))
@@ -561,7 +528,7 @@ void printSerial()
 {
 	Incognito incognito;
 	printf("\n");
-	printf("\x1b[33;1m*\x1b[0m Serial number:\x1b[32;1m%s\x1b[0m\n", incognito.serial());
+	printf("\x1b[33;1m*\x1b[36;1m Serial number:\x1b[32;1m%s\x1b[0m\n", incognito.serial());
 
 
 
@@ -604,12 +571,12 @@ int main(int argc, char **argv)
 	
 	consoleInit(NULL);
 	appletBeginBlockingHomeButton(3);
+	printf("\x1b[32;1m*\x1b[0m Incognito v%s Kronos2308 Mod \n", version);
 	mkdir("/atmosphere/flags", 0700);
 	createflag("sdmc:/atmosphere/flags/hbl_cal_read.flag");
 	printSerial();
 	
 
-	printf("\n");
 	printf("\x1b[31;1m*\x1b[0m Warning: This software was written by a not nice person.\n");
 	printf("\x1b[31;1m*\x1b[0m This app made permanent modificatins to \x1b[31;1mProdinfo\x1b[0m partition.\n");
 	printf("\x1b[31;1m*\x1b[0m Alwas have a backup (just in case).\n");
