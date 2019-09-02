@@ -184,7 +184,7 @@ public:
 		if (fsStorageWrite(&m_sh, 0x0250, junkSerial, strlen(junkSerial)))
 		{
 			printf("\x1b[31;1merror:\x1b[0m failed writing serial\n");
-			printf("Atmosphere block the access to prodinfo\n");
+			printf("\x1b[36;1m Atmosphere block the access to prodinfo\x1b[0m\n");
 			return false;
 		}
 
@@ -280,6 +280,7 @@ public:
 			if (fsStorageWrite(&m_sh, hashOffset, hash, sizeof(hash)))
 			{
 				printf("\x1b[31;1merror:\x1b[0m failed writing hash\n");
+				printf("\x1b[36;1m Atmosphere block the access to prodinfo\x1b[0m\n");
 			}
 		}
 

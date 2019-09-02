@@ -1,0 +1,13 @@
+build/*
+romfs/*.teek
+romfs/*.url
+ReiNXSettings.*
+*.elf
+*.nro
+*.pfs0
+*.nso
+*.nacp
+*.nsp
+*.npdm
+img
+*.cmd
