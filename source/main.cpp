@@ -179,11 +179,11 @@ public:
 			FILE* g = fopen("safemode2:/prodinfo.bin", "wb+");		
 			fwrite(buffer, 1, size(), g);
 			fclose(g);
-			fsdevCommitDevice("safemode");
+			fsdevCommitDevice("safemode2");
 		}
 		delete buffer;
 		
-		fsdevUnmountDevice("safemode");
+		fsdevUnmountDevice("safemode2");
 		fsFsClose(&save);
 		
 		fclose(f);
@@ -578,7 +578,7 @@ Incognito incognito;
 		{
 				if (!confirm())
 				{
-					fsdevUnmountDevice("safemode");
+					fsdevUnmountDevice("safemode2");
 					fsFsClose(&save2);
 					return end();
 				}
@@ -590,11 +590,11 @@ Incognito incognito;
 			}
 		}else{
 		printf("\x1b[31;1merror:\x1b[0m prodinfo.bin does not exist in the nand, Tas Bien Jodido \n");
-		fsdevUnmountDevice("safemode");
+		fsdevUnmountDevice("safemode2");
 		fsFsClose(&save2);
 		return end();
 		}
-	fsdevUnmountDevice("safemode");
+	fsdevUnmountDevice("safemode2");
 	fsFsClose(&save2);
 	}
 	printf("new serial:       \x1b[32;1m%s\x1b[0m\n", incognito.serial());
