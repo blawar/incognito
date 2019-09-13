@@ -648,7 +648,16 @@ bool mainMenu()
 		if (keys & KEY_PLUS)
 		{
 			break;
+		}		
+		
+		if(strlen(SwitchIdent_GetSerialNumber()) <= 0)
+		{
+			if (keys & KEY_MINUS)
+			{
+				return install();
+			}
 		}
+
 		consoleUpdate(NULL);
 	}
 	return true;
