@@ -38,7 +38,7 @@ INCLUDES	:=	include
 EXEFS_SRC	:=	exefs_src
 APP_TITLE   :=	Incognito
 APP_AUTHOR  := 	Blawar
-APP_VERSION := 	1.4-5
+APP_VERSION := 	1.4-7
 #ROMFS	:=	romfs
 
 #---------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ ARCH	:=	-march=armv8-a -mtune=cortex-a57 -mtp=soft -fPIE
 CFLAGS	:=	-g -O2 -ffunction-sections \
 			$(ARCH) $(DEFINES)
 
-CFLAGS	+=	$(INCLUDE) -D__SWITCH__
+CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -DVERSION='"$(APP_VERSION)"' -DTITLE='"$(APP_TITLE)"'
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 

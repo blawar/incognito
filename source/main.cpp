@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 using namespace std;
-static char version[32] = "1.4-5";
+//static char version[32] = "1.4-5";
 
 //ask to the switch for the serial
 char *SwitchIdent_GetSerialNumber(void) {
@@ -19,7 +19,7 @@ char *SwitchIdent_GetSerialNumber(void) {
 	static char serial[0x19];
 	if (R_FAILED(ret = setsysGetSerialNumber(serial)))
 		printf("setsysGetSerialNumber() failed: 0x%x.\n\n", ret);
-	if(strlen(serial) == 0) {sprintf(serial, "XAW00000000000");}
+//	if(strlen(serial) == 0) {sprintf(serial, "XAW00000000000");}
 	setsysExit();
 	return serial;
 }
@@ -40,6 +40,27 @@ bool delflags(){
 	remove("/atmosphere/flags/hbl_cal_write.flag");
 	appletEndBlockingHomeButton();
 	return 0;
+}
+//traduction
+bool isSpanish()
+{
+			setInitialize();
+			u64 lcode = 0;
+			s32 lang = 1;
+			setGetSystemLanguage(&lcode);
+			setMakeLanguage(lcode, &lang);
+				switch(lang)
+				{
+					case 5:
+					case 14:
+					return true;
+					   break;
+					default:
+					return false;
+						break;
+				}
+			setsysExit();
+		return false;
 }
 
 bool mainMenu();
@@ -63,6 +84,9 @@ public:
 	{		
 		if (fsOpenBisStorage(&m_sh, FsBisStorageId_CalibrationBinary))
 		{
+			if(isSpanish())
+			printf("\x1b[31;1merror:\x1b[0m no se pudo abrir la partición cal0.\n");
+			else
 			printf("\x1b[31;1merror:\x1b[0m failed to open cal0 partition.\n");
 			m_open = false;
 		}
@@ -95,7 +119,6 @@ public:
 	char* backupFileName()
 	{
 		static char filename[32] = "sdmc:/backup/prodinfo.bin";
-		sprintf(filename, "sdmc:/backup/%s-proinfo.bin", SwitchIdent_GetSerialNumber());
 		if (!fileExists(filename))
 		{
 			mkdir("sdmc:/backup/", 777);
@@ -105,7 +128,7 @@ public:
 		{
 			for (int i = 0; i < 99; i++)
 			{
-				sprintf(filename, "sdmc:/backup/%s-proinfo.bin.%d", SwitchIdent_GetSerialNumber(), i);
+				sprintf(filename, "sdmc:/backup/proinfo-%d.bin", i);
 
 				if (!fileExists(filename))
 				{
@@ -135,9 +158,11 @@ public:
 			delete buffer;
 			return false;
 		}
-
+				FsFileSystem save;
+			    fsOpenBisFileSystem(&save, FsBisStorageId_SafeMode, "");
+                fsdevMountDevice("safemode2", save);
+				
 			FILE* f = fopen(fileName, "wb+");
-			FILE* g = fopen("sdmc:/backup/prodinfo.bin", "wb+");		
 
 			if (!f)
 			{
@@ -148,18 +173,20 @@ public:
 			}
 
 		fwrite(buffer, 1, size(), f);
-		delete buffer;
-		//prepare original Prodinfo for Restiore
-		if (!fileExists("sdmc:/backup/prodinfo.bin"))
+		//make a Prodinfo backup on nand
+		if (!fileExists("safemode2:/prodinfo.bin"))
 		{
-		if (fsStorageRead(&m_sh, 0x0, buffer, size()))
-		delete buffer;
-		fwrite(buffer, 1, size(), g);
+			FILE* g = fopen("safemode2:/prodinfo.bin", "wb+");		
+			fwrite(buffer, 1, size(), g);
+			fclose(g);
+			fsdevCommitDevice("safemode");
 		}
+		delete buffer;
 		
+		fsdevUnmountDevice("safemode");
+		fsFsClose(&save);
 		
 		fclose(f);
-		fclose(g);
 
 		printf("saved backup to %s\n", fileName);
 		return true;
@@ -174,6 +201,8 @@ public:
 
 	bool clean()
 	{
+
+	
 		if (!backup())
 		{
 			return false;
@@ -184,7 +213,10 @@ public:
 		if (fsStorageWrite(&m_sh, 0x0250, junkSerial, strlen(junkSerial)))
 		{
 			printf("\x1b[31;1merror:\x1b[0m failed writing serial\n");
-			printf("\x1b[36;1m Atmosphere block the access to prodinfo\x1b[0m\n");
+			if(isSpanish())
+			printf("\x1b[36;1mAtmosphere bloquea el acceso al prodinfo\x1b[0m\n");
+			else
+			printf("\x1b[36;1mAtmosphere block the access to the prodinfo\x1b[0m\n");
 			return false;
 		}
 
@@ -280,7 +312,10 @@ public:
 			if (fsStorageWrite(&m_sh, hashOffset, hash, sizeof(hash)))
 			{
 				printf("\x1b[31;1merror:\x1b[0m failed writing hash\n");
-				printf("\x1b[36;1m Atmosphere block the access to prodinfo\x1b[0m\n");
+			if(isSpanish())
+			printf("\x1b[36;1mAtmosphere bloquea el acceso al prodinfo\x1b[0m\n");
+			else
+			printf("\x1b[36;1mAtmosphere block the access to the prodinfo\x1b[0m\n");
 			}
 		}
 
@@ -386,8 +421,12 @@ protected:
 };
 bool Reboots()
 {
+	if(isSpanish()){
+	printf("Pulsa + para reiniciar (recomendado)\n");	
+	printf("Pulsa HOME para salir\n");
+	}else{
 	printf("Press + to Reboot(recomended)\n");	
-	printf("Press HOME to exit\n");
+	printf("Press HOME to exit\n");}
 	delflags();
 	while (appletMainLoop())
 	{
@@ -409,7 +448,11 @@ bool Reboots()
 bool end()
 
 {
-	printf("Press + to exit\n");	
+	if(isSpanish())
+	printf("Pulsa + para salir\n");
+	else
+	printf("Press + to exit\n");
+	
 	delflags();
 	while (appletMainLoop())
 	{
@@ -429,8 +472,12 @@ bool end()
 
 bool confirm()
 {
+	if(isSpanish()){
+	printf("Seguro que quieres hacer esto?\n");
+	printf("Pulse A para confirmar\n");
+	}else{
 	printf("Are you sure you want to do this?\n");
-	printf("Press A to confirm\n");
+	printf("Press A to confirm\n");}
 
 	while (appletMainLoop())
 	{
@@ -454,8 +501,10 @@ bool confirm()
 
 bool install()
 {
-	printf("Are you sure you want erase your personal infomation from prodinfo?\n");
-
+	if(isSpanish())
+	printf("Estas seguro de que deseas borrar tu informacion personal del prodinfo?\n");
+	else
+	printf("Are you sure you want erase your personal information from prodinfo?\n");
 	if (!confirm())
 	{
 		return end();
@@ -473,26 +522,26 @@ bool install()
 
 bool verify()
 {
-	if (!fileExists("sdmc:/backup/prodinfo.bin"))
+/*	if (!fileExists("sdmc:/backup/prodinfo.bin"))
 	{
 	printf("\n\n");
 	printf("\x1b[31;1merror: prodinfo.bin not found\n\n\x1b[0m");
 	return false;
-	}
+	}*/
 	Incognito incognito;
 
 	if (incognito.verify())
 	{
 		consoleUpdate(NULL);
 		printf("\n\n");
-		printf("\x1b[32;1mprodinfo verified\n\x1b[0m");
+		printf("\x1b[32;1mProdinfo verified\n\x1b[0m");
 
 		return true;
 	}
 	else
 	{
 		consoleUpdate(NULL);
-		printf("\x1b[31;1merror: prodinfo is invalid\n\n\x1b[0m");
+		printf("\x1b[31;1merror: Prodinfo is invalid\n\n\x1b[0m");
 		
 		return false;
 	}
@@ -509,17 +558,52 @@ if(verify()){
 	printf("Working...\n");
 	consoleUpdate(NULL);
 Incognito incognito;
-
-	if (!incognito.import("prodinfo.bin"))
+	if (fileExists("sdmc:/backup/prodinfo.bin"))
 	{
-		printf("\x1b[31;1merror:\x1b[0m failed to import prodinfo.bin\n");
+		if (!incognito.import("sdmc:/backup/prodinfo.bin"))
+		{
+			printf("\x1b[31;1merror:\x1b[0m failed to import prodinfo.bin\n");
+			//return end();
+		}
+	}else{
+	printf("\x1b[31;1m*:\x1b[0m prodinfo.bin does not exist on the SD card, do i restore it from the Nand? \n");
+	consoleUpdate(NULL);
+		//Ok prodifo.bin is not on SD
+		FsFileSystem save2;
+		fsOpenBisFileSystem(&save2, FsBisStorageId_SafeMode, "");
+        fsdevMountDevice("safemode2", save2);
+		
+		//first check if prodifo.bin is on nand
+		if (fileExists("safemode2:/prodinfo.bin"))
+		{
+				if (!confirm())
+				{
+					fsdevUnmountDevice("safemode");
+					fsFsClose(&save2);
+					return end();
+				}
+			//try to import from SAVE Partition
+			if (!incognito.import("safemode2:/prodinfo.bin"))
+			{
+				printf("\x1b[31;1merror:\x1b[0m failed to import prodinfo.bin from nand\n");
+				return end();
+			}
+		}else{
+		printf("\x1b[31;1merror:\x1b[0m prodinfo.bin does not exist in the nand, Tas Bien Jodido \n");
+		fsdevUnmountDevice("safemode");
+		fsFsClose(&save2);
 		return end();
+		}
+	fsdevUnmountDevice("safemode");
+	fsFsClose(&save2);
 	}
-
 	printf("new serial:       \x1b[32;1m%s\x1b[0m\n", incognito.serial());
 	incognito.close();
 
-	printf("fin, please reboot\n");
+	if(isSpanish())
+	printf("Finalizado, por favor reinicia\n");
+	else
+	printf("Finished, please Reboot\n");
 	return Reboots();
 	}
 return mainMenu();
@@ -529,8 +613,10 @@ void printSerial()
 {
 	Incognito incognito;
 	printf("\n");
+	if(isSpanish())
+	printf("\x1b[33;1m*\x1b[36;1m Numero de Serie:\x1b[32;1m%s\x1b[0m\n", incognito.serial());
+	else
 	printf("\x1b[33;1m*\x1b[36;1m Serial number:\x1b[32;1m%s\x1b[0m\n", incognito.serial());
-
 
 
 	incognito.close();
@@ -544,12 +630,15 @@ bool mainMenu()
 		hidScanInput();
 
 		u64 keys = hidKeysDown(CONTROLLER_P1_AUTO);
-
-		if (keys & KEY_A)
+		
+		if(strlen(SwitchIdent_GetSerialNumber()) != 0)
 		{
-			return install();
+			if (keys & KEY_A)
+			{
+				return install();
+			}
 		}
-
+		
 		if (keys & KEY_Y)
 		{
 
@@ -572,22 +661,38 @@ int main(int argc, char **argv)
 	
 	consoleInit(NULL);
 	appletBeginBlockingHomeButton(3);
-	printf("\x1b[32;1m*\x1b[0m Incognito v%s Kronos2308 Mod \n", version);
+	printf("\x1b[32;1m*\x1b[0m %s v%s Kronos2308 Mod \n",TITLE, VERSION);
 	mkdir("/atmosphere/flags", 0700);
 	createflag("sdmc:/atmosphere/flags/hbl_cal_read.flag");
 	printSerial();
-	
-
-	printf("\x1b[31;1m*\x1b[0m Warning: This software was written by a not nice person.\n");
-	printf("\x1b[31;1m*\x1b[0m This app made permanent modificatins to \x1b[31;1mProdinfo\x1b[0m partition.\n");
-	printf("\x1b[31;1m*\x1b[0m Alwas have a backup (just in case).\n");
-	printf("\x1b[31;1m*\x1b[0m this software come without any warranty.\n");
-	printf("\x1b[31;1m*\x1b[0m I am not responsable of melt switch or nuclear explotions\n\n");
-
-	printf("\n\n\x1b[30;1m-------- Main Menu --------\x1b[0m\n");
-	printf("Press A to install incognito mode\n");
-	printf("Press Y to restore prodinfo.bin\n");
-	printf("Press + to exit\n\n");
+				if(isSpanish())
+				{
+					printf("\x1b[31;1m*\x1b[0m Advertencia: Este software fue escrito por el Policia de la Scene.\n");
+					printf("\x1b[31;1m*\x1b[0m Esta aplicacion hace modificaciones permanentes al \x1b[31;1mPRODINFO\x1b[0m.\n");
+					printf("\x1b[31;1m*\x1b[0m Siempre tenga una copia de seguridad (por si acaso).\n");
+					printf("\x1b[31;1m*\x1b[0m Este software viene sin ninguna garantia.\n");
+					printf("\x1b[31;1m*\x1b[0m No soy responsable de posibles fusiones Nucleares o Explosiones...\n");
+					printf("\n\n\x1b[30;1m-------- Menu Principal --------\x1b[0m\n");
+						if(strlen(SwitchIdent_GetSerialNumber()) != 0)
+						printf("Pulsa A para Instalar incognito Mode\n");
+						else
+						printf("-----------------------------------\n* \x1b[30;1mIncognito parece estar Instalado\x1b[0m\n-----------------------------------\n");
+					printf("Pulsa Y para Restaurar prodinfo.bin\n");
+					printf("Pulsa + para Salir\n\n");
+				}else{
+					printf("\x1b[31;1m*\x1b[0m Warning: This software was written by a not nice person.\n");
+					printf("\x1b[31;1m*\x1b[0m This app made permanent modificatins to \x1b[31;1mProdinfo\x1b[0m partition.\n");
+					printf("\x1b[31;1m*\x1b[0m Alwas have a backup (just in case).\n");
+					printf("\x1b[31;1m*\x1b[0m this software come without any warranty.\n");
+					printf("\x1b[31;1m*\x1b[0m I am not responsable of melt switch or nuclear explotions\n");
+					printf("\n\n\x1b[30;1m-------- Main Menu --------\x1b[0m\n");
+						if(strlen(SwitchIdent_GetSerialNumber()) != 0)
+						printf("Press A to install incognito mode\n");
+						else
+						printf("\n-----------------------------------* \x1b[30;1mIncognito seems to be Installed\x1b[0m\n\n-----------------------------------");
+					printf("Press Y to restore prodinfo.bin\n");
+					printf("Press + to exit\n\n");
+				}
 	mainMenu();
 	delflags();
 	consoleExit(NULL);
