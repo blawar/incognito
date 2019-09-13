@@ -6,6 +6,10 @@ a) So your switch can go online without worrying about a ban or using random dog
 
 b) so malicious homebrew applications cannot steal your personal certificate.
 
+<a href="https://discord.io/myrincon"><img src="https://discordapp.com/api/guilds/516631805621960704/embed.png" alt="Discord Server" /></a>
+
+![alt text](captura.jpg)
+
 # disclaimer
 Always have a nand backup.  I am not responsible for any bricks or bans.  Use at your own risk, experimental.
 
