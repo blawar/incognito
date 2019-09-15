@@ -38,7 +38,7 @@ INCLUDES	:=	include
 EXEFS_SRC	:=	exefs_src
 APP_TITLE   :=	Incognito
 APP_AUTHOR  := 	blawar
-APP_VERSION := 	1.4
+APP_VERSION := 	1.5
 #ROMFS	:=	romfs
 
 #---------------------------------------------------------------------------------
