@@ -677,8 +677,10 @@ int main(int argc, char **argv)
 				if(isSpanish())
 				{
 					printf("\x1b[31;1m*\x1b[0m Advertencia: Este software fue escrito por el Policia de la Scene.\n");
-					printf("\x1b[31;1m*\x1b[0m Esta aplicacion hace modificaciones permanentes al \x1b[31;1mPRODINFO\x1b[0m.\n");
-					printf("\x1b[31;1m*\x1b[0m Siempre tenga una copia de seguridad (por si acaso).\n");
+					printf("\x1b[31;1m*\x1b[0m Esta aplicacion corrompe intencionalmente el \x1b[31;1mPRODINFO\x1b[0m de la consola.\n");
+					printf("\x1b[31;1m*\x1b[0m El objetivo es que la consola no conecta con Nintendo de ninguna forma.\n");
+					printf("\x1b[31;1m*\x1b[0m Si se usa en Emunand solo afectara a Emunand.\n");
+					printf("\x1b[31;1m*\x1b[0m Puede ser revertido en cualquier momento asi que no pierdas tu prodinfo.bin\n");
 					printf("\x1b[31;1m*\x1b[0m Este software viene sin ninguna garantia.\n");
 					printf("\x1b[31;1m*\x1b[0m No soy responsable de posibles fusiones Nucleares o Explosiones...\n");
 					printf("\n\n\x1b[30;1m-------- Menu Principal --------\x1b[0m\n");
@@ -690,8 +692,10 @@ int main(int argc, char **argv)
 					printf("Pulsa + para Salir\n\n");
 				}else{
 					printf("\x1b[31;1m*\x1b[0m Warning: This software was written by a not nice person.\n");
-					printf("\x1b[31;1m*\x1b[0m This app made permanent modificatins to \x1b[31;1mProdinfo\x1b[0m partition.\n");
-					printf("\x1b[31;1m*\x1b[0m Alwas have a backup (just in case).\n");
+					printf("\x1b[31;1m*\x1b[0m This application intentionally corrupts the console \x1b[31;1mProdinfo\x1b[0m partition.\n");
+					printf("\x1b[31;1m*\x1b[0m The goal is that the console does not connect with Nintendo in any way.\n");
+					printf("\x1b[31;1m*\x1b[0m If used in Emunand it will only affect Emunand.\n");
+					printf("\x1b[31;1m*\x1b[0m It can be reversed at any time so don't lose your prodinfo.bin.\n");
 					printf("\x1b[31;1m*\x1b[0m this software come without any warranty.\n");
 					printf("\x1b[31;1m*\x1b[0m I am not responsable of melt switch or nuclear explotions\n");
 					printf("\n\n\x1b[30;1m-------- Main Menu --------\x1b[0m\n");
