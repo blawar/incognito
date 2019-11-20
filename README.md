@@ -1,7 +1,7 @@
 # incognito
 Wipes some personal information from your Nintendo Switch by removing it from PRODINFO (CAL0).
 
-NOTE: Both Atmosphere and SX OS 2.9+ block writes to PRODINFO, so you must use ReiNX, SX OS (up to 2.8), or a custom KIP to install this. Once installed, you can switch back to any CFW.
+NOTE: Both Atmosphere and SX OS 2.9+ block writes to PRODINFO, so you must use the Atmosphere fork in Tinfoil from tinfoil.io to install this. Once installed, you can switch back to any CFW.
 
 ## Purpose
 a) It enables your switch to go online while worrying slightly less about a ban.
